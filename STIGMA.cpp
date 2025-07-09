@@ -25,7 +25,7 @@ int main() {
     while (!ngs::ps::child_proc_id_is_complete(pid)) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
       std::string output = ngs::ps::read_from_stdout_for_child_proc_id(pid); std::size_t len = output.length();
-      std::system("cls"); printf("%s", output.substr((len >= 4096) ? len - 4096 : len).c_str());
+      std::system("cls"); printf("%s", output.substr((len >= 1024) ? len - 512 : len).c_str());
     }
     ngs::ps::free_stdout_for_child_proc_id(pid);
     ngs::ps::free_stdin_for_child_proc_id(pid);
