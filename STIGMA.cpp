@@ -22,11 +22,8 @@ int main() {
     pid = ngs::ps::spawn_child_proc_id("\"" + dir + "LateralGM-Windows-x86_64.exe\"", false);
   }
   if (pid) {
-    while (!ngs::ps::child_proc_id_is_complete(pid)) {
+    while (!ngs::ps::child_proc_id_is_complete(pid))
       std::this_thread::sleep_for(std::chrono::seconds(1));
-      std::string output = ngs::ps::read_from_stdout_for_child_proc_id(pid); std::size_t len = output.length();
-      std::system("cls"); printf("%s", output.substr((len >= 4096) ? len - 2048 : len).c_str());
-    }
     ngs::ps::free_stdout_for_child_proc_id(pid);
     ngs::ps::free_stdin_for_child_proc_id(pid);
   }
