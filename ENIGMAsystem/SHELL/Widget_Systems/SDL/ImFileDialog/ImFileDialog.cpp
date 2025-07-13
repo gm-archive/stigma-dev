@@ -606,7 +606,6 @@ namespace ifd {
     m_isMultiselect = false;
     m_type = IFD_DIALOG_SAVE;
     colon_dir = false;
-    
 
     strcpy(m_inputTextbox, startingFile.substr(0, 1023).c_str());
 
