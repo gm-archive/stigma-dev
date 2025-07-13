@@ -282,8 +282,7 @@ namespace {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
     SDL_WindowFlags windowFlags = (SDL_WindowFlags)(
     ((ngs::fs::environment_get_variable("IMGUI_DIALOG_PARENT").empty()) ? SDL_WINDOW_ALWAYS_ON_TOP : 0) |
-    SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_HIDDEN | ((ngs::fs::environment_get_variable("IMGUI_DIALOG_RESIZE") ==
-    std::to_string(1)) ? SDL_WINDOW_RESIZABLE : 0) | SDL_WINDOW_BORDERLESS);
+    SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS);
     window = SDL_CreateWindow(title.c_str(),
     SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, IFD_DIALOG_WIDTH, IFD_DIALOG_HEIGHT, windowFlags);
     if (window == nullptr) return "";
