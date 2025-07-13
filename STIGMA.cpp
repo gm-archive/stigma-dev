@@ -2,7 +2,6 @@
 #include <thread>
 #include <chrono>
 #include <string>
-#include <cstdlib>
 
 #include "shared/apifilesystem/filesystem.hpp"
 #include "shared/apiprocess/process.hpp"
