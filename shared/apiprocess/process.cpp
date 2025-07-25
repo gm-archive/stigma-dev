@@ -45,7 +45,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #endif
 
@@ -79,6 +78,7 @@
 #include <sys/param.h>
 #include <sys/procfs.h>
 #endif
+#include <sys/stat.h>
 #if (defined(USE_SDL_POLLEVENT) || defined(USE_SDL2_POLLEVENT))
 #include <SDL.h>
 #endif
@@ -1760,20 +1760,41 @@ namespace ngs::ps {
     std::vector<char> buff;
     DWORD bytes_avail = 0;
     HANDLE handle = GetStdHandle(STD_INPUT_HANDLE);
+    if (handle == INVALID_HANDLE_VALUE) {
+      return standard_input.c_str();
+    }
     if (GetFileType(handle) == FILE_TYPE_PIPE) {
       if (PeekNamedPipe(handle, nullptr, 0, nullptr, &bytes_avail, nullptr)) {
-        DWORD bytes_read = 0;
-        buff.resize(bytes_avail);
-        if (PeekNamedPipe(handle, &buff[0], bytes_avail, &bytes_read, nullptr, nullptr)) {
-          standard_input = buff.data();
+        DWORD mode = 0;
+        if (GetConsoleMode(handle, &mode)) {
+          DWORD bytes_read = 0;
+          buff.resize(bytes_avail);
+          if (PeekNamedPipe(handle, &buff[0], bytes_avail, &bytes_read, nullptr, nullptr)) {
+            standard_input = buff.data();
+          }
+        } else {
+          // TODO: Handle file sent to STDIN with GUI mode...
         }
       }
     } else {
-      DWORD nRead = BUFSIZ;
-      buff.resize(nRead);
-      while (ReadFile(handle, &buff[0], nRead, &nRead, nullptr) && nRead) {
-        message_pump();
-        standard_input.append(buff.data(), nRead);
+      DWORD mode = 0;
+      if (GetConsoleMode(handle, &mode)) {
+        struct stat st;
+        if (!fstat(_fileno(stdin), &st)) {
+          std::vector<wchar_t> buff;
+          buff.resize(st.st_size + 1);
+          if (fgetws(&buff[0], st.st_size + 1, stdin)) {
+            std::wstring wstr(buff.begin(), buff.end());
+            standard_input = narrow(wstr);
+          }
+        }
+      } else {
+        DWORD nRead = BUFSIZ;
+        buff.resize(nRead);
+        while (ReadFile(handle, &buff[0], nRead, &nRead, nullptr) && nRead) {
+          message_pump();
+          standard_input.append(buff.data(), nRead);
+        }
       }
     }
     #else
