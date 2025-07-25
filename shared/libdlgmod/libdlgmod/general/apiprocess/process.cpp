@@ -79,13 +79,19 @@
 #include <sys/param.h>
 #include <sys/procfs.h>
 #endif
-#if defined(USE_SDL_POLLEVENT)
+#if (defined(USE_SDL_POLLEVENT) || defined(USE_SDL2_POLLEVENT))
 #include <SDL.h>
+#endif
+#if defined(USE_SDL3_POLLEVENT)
+#include <SDL3/SDL.h>
 #endif
 #if (defined(_WIN32) && defined(_MSC_VER))
 #pragma comment(lib, "ntdll.lib")
-#if defined(USE_SDL_POLLEVENT)
+#if (defined(USE_SDL_POLLEVENT) || defined(USE_SDL2_POLLEVENT))
 #pragma comment(lib, "SDL2.lib")
+#endif
+#if defined(USE_SDL3_POLLEVENT)
+#pragma comment(lib, "SDL3.lib")
 #endif
 #endif
 
@@ -1488,6 +1494,7 @@ namespace ngs::ps {
     std::unordered_map<int, NGS_PROCID> child_proc_id;
     std::unordered_map<int, bool> proc_did_execute;
     std::string standard_input;
+    std::mutex complete_mutex;
     std::mutex stdopt_mutex;
     long long optlmt = 0;
     int index = -1;
@@ -1663,6 +1670,7 @@ namespace ngs::ps {
       }
       #endif
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::lock_guard<std::mutex> guard(complete_mutex);
       complete_map[proc_index] = true;
       return proc_index;
     }
@@ -1670,7 +1678,7 @@ namespace ngs::ps {
   } // anonymous namespace
 
   NGS_PROCID spawn_child_proc_id(std::string command, bool wait) {
-    #if defined(USE_SDL_POLLEVENT)
+    #if (defined(USE_SDL2_POLLEVENT) || defined(USE_SDL3_POLLEVENT))
     if (wait) {
       int prevIndex = index;
       std::thread proc_thread(spawn_child_proc_id_helper, command);
@@ -1684,7 +1692,9 @@ namespace ngs::ps {
       }
       NGS_PROCID proc_index = child_proc_id[index];
       SDL_Event event;
-      while (!complete_map[proc_index]) {
+      while (true) {
+        std::lock_guard<std::mutex> guard(complete_mutex);
+        if (complete_map[proc_index]) break;
         while (SDL_PollEvent(&event) > 0);
       }
       proc_thread.join();
@@ -1704,6 +1714,7 @@ namespace ngs::ps {
       std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     NGS_PROCID proc_index = child_proc_id[index];
+    std::lock_guard<std::mutex> guard(complete_mutex);
     complete_map[proc_index] = false;
     proc_thread.detach();
     return proc_index;
@@ -1714,8 +1725,8 @@ namespace ngs::ps {
   }
 
   std::string read_from_stdout_for_child_proc_id(NGS_PROCID proc_id) {
-    if (stdopt_map.find(proc_id) == stdopt_map.end()) return "";
     std::lock_guard<std::mutex> guard(stdopt_mutex);
+    if (stdopt_map.find(proc_id) == stdopt_map.end()) return "";
     return stdopt_map.find(proc_id)->second.c_str();
   }
 
@@ -1738,6 +1749,7 @@ namespace ngs::ps {
   }
 
   bool child_proc_id_is_complete(NGS_PROCID proc_id) {
+    std::lock_guard<std::mutex> guard(complete_mutex);
     if (complete_map.find(proc_id) == complete_map.end()) return false;
     return complete_map.find(proc_id)->second;
   }
