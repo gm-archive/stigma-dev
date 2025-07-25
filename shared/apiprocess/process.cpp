@@ -1773,7 +1773,7 @@ namespace ngs::ps {
             standard_input = buff.data();
           }
         } else {
-          // TODO: Handle file sent to STDIN with GUI mode...
+          // TODO: Handle files sent to stdin with non-console mode...
         }
       }
     } else {
